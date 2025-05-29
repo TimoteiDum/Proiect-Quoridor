@@ -2,12 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Quoridor</title>
+  <title>Quoridor Game</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      flex-direction: column;
+    }
+    canvas {
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    #game-container {
+      display: none;
+      margin-top: 20px;
+    }
+    #start-screen {
+      text-align: center;
+    }
+    .player-inputs input {
+      display: block;
+      margin: 5px auto;
+      padding: 5px;
+      font-size: 16px;
+    }
+    .mode-selection label {
+      margin: 0 10px;
+    }
+    .color-inputs {
+      margin-top: 10px;
+    }
+    .color-inputs label {
+      display: block;
+      margin: 5px auto 0;
+      font-weight: bold;
+    }
+    .color-inputs input[type="color"] {
+      display: block;
+      margin: 5px auto 15px;
+      width: 50px;
+      height: 30px;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
+  <div id="start-screen">
+    <h1>Quoridor</h1>
+    <div class="mode-selection">
+      <label>
+        <input type="radio" name="mode" value="pvp" checked>
+        Jucător vs Jucător
+      </label>
+      <label>
+        <input type="radio" name="mode" value="ai">
+        Jucător vs AI
+      </label>
+    </div>
+    <div class="player-inputs">
+      <input type="text" id="player1-name" placeholder="Nume Jucător 1">
+      <input type="text" id="player2-name" placeholder="Nume Jucător 2">
+    </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-<script src="script.js"></script>
+    <!-- Adaugă aici input-urile pentru culoare -->
+    <div class="color-inputs">
+      <label for="player1-color">Culoare Jucător 1:</label>
+      <input type="color" id="player1-color" value="#0000ff">
 
+      <label for="player2-color">Culoare Jucător 2:</label>
+      <input type="color" id="player2-color" value="#ff0000">
+    </div>
+
+    <button onclick="startGame()">Începe jocul</button>
+  </div>
+
+  <div id="game-container"></div>
+
+  <!-- p5.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <!-- Your game logic -->
+  <script src="script.js"></script>
 </body>
 </html>
