@@ -1,0 +1,1 @@
+# Proiect-Quoridor\n\nA Quoridor game implementation.\n\n## Setup\n1. Clone the repository: `git clone https://github.com/TimoteiDum/Proiect-Quoridor.git`\n2. Install dependencies: [e.g., gcc, Python, etc.]\n3. Run the game: [e.g., ./Quoridor or python main.py]
