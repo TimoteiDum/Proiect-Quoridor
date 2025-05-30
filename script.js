@@ -284,15 +284,72 @@ class Board {
     } else {
       if (x >= BOARD_SIZE - 2 || y >= BOARD_SIZE - 1) return false;
     }
-
+    
+  
     for (const wall of this.walls) {
       if (wall.x === x && wall.y === y && wall.vertical === vertical) {
         return false;
       }
+  
+      if (vertical && wall.vertical) {
+        if (wall.x === x && (wall.y === y - 1 || wall.y === y || wall.y === y + 1)) {
+          return false;
+        }
+      } else if (!vertical && !wall.vertical) {
+        if (wall.y === y && (wall.x === x - 1 || wall.x === x || wall.x === x + 1)) {
+          return false;
+        }
+      } else {
+        if (vertical && wall.x === x && wall.y === y && !wall.vertical) {
+          return false;
+        }
+        if (!vertical && wall.x === x && wall.y === y && wall.vertical) {
+          return false;
+        }
+      }
     }
-    return true;
+  
+    // Simulează adăugarea zidului și verifică dacă jucătorii încă au drum
+    this.walls.push(new Wall(x, y, vertical));
+    const pathExists = this.players.every(player => this.hasPath(player));
+    this.walls.pop();
+  
+    return pathExists;
   }
-
+  hasPath(player) {
+    const visited = new Set();
+    const queue = [[player.x, player.y]];
+    const goalY = player === this.players[0] ? BOARD_SIZE - 1 : 0;
+  
+    while (queue.length > 0) {
+      const [x, y] = queue.shift();
+      const key = `${x},${y}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+  
+      if (y === goalY) return true;
+  
+      const dirs = [
+        [0, -1], [0, 1], [1, 0], [-1, 0]
+      ];
+  
+      for (const [dx, dy] of dirs) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (
+          nx >= 0 && nx < BOARD_SIZE &&
+          ny >= 0 && ny < BOARD_SIZE &&
+          !this.isBlocked(x, y, nx, ny)
+        ) {
+          queue.push([nx, ny]);
+        }
+      }
+    }
+  
+    return false;
+  }
+  
+  
   isBlocked(x1, y1, x2, y2) {
     for (const wall of this.walls) {
       if (wall.vertical) {
