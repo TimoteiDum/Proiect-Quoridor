@@ -27,10 +27,34 @@ function startGame() {
   canvas = createCanvas(BOARD_SIZE * TILE_SIZE + 200, BOARD_SIZE * TILE_SIZE);
   canvas.parent('game-container');
 
-  board = new Board(player1Name, player2Name, color1, color2);  // PAS modificat
+  board = new Board(player1Name, player2Name, color1, color2);
   currentPlayer = 1;
   gameStarted = true;
 }
+
+// Interacțiune pentru fereastra cu opțiuni
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("options-modal");
+  const openBtn = document.getElementById("options-button");
+  const closeBtn = document.querySelector(".close-button");
+
+  openBtn.onclick = () => modal.style.display = "block";
+  closeBtn.onclick = () => modal.style.display = "none";
+  window.onclick = (event) => {
+    if (event.target === modal) {
+      modal.style.display = "none";
+    }
+  };
+
+  document.getElementById("reset-button").onclick = () => {
+    location.reload(); // Reset joc
+  };
+
+  document.getElementById("giveup-button").onclick = () => {
+    alert(`${board.players[currentPlayer].name} s-a dat bătut!`);
+    location.reload(); // Sau adaugă logică pentru final de joc
+  };
+});
 
 
 
@@ -38,7 +62,7 @@ function draw() {
   if (!gameStarted) return;
 
   background(255);
-  fill('#dbeafe'); // albastru nude deschis pentru zona laterală
+  fill('#dbeafe');
   noStroke();
   rect(BOARD_SIZE * TILE_SIZE, 0, 200, height);
 
@@ -49,7 +73,6 @@ function draw() {
     ellipse(mouseX, mouseY, TILE_SIZE * 0.6);
   }
 
-  // Afișare jucători și ziduri în zona laterală cu culorile lor actualizate
   const player1 = board.players[0];
   const player2 = board.players[1];
 
@@ -120,7 +143,13 @@ function mouseReleased() {
   } else if (dragging && draggedPlayer) {
     if (draggedPlayer.isAdjacent(x, y, board)) {
       draggedPlayer.move(x, y, board);
-      currentPlayer = 1 - currentPlayer;
+
+      if ((currentPlayer === 0 && draggedPlayer.y === BOARD_SIZE - 1) ||
+          (currentPlayer === 1 && draggedPlayer.y === 0)) {
+        showWinnerModal(draggedPlayer.name);
+      } else {
+        currentPlayer = 1 - currentPlayer;
+      }
     }
   }
 
@@ -284,4 +313,20 @@ class Board {
     }
     return false;
   }
+}
+
+// FUNCȚIE pentru afișare mesaj de câștig
+function showWinnerModal(winnerName) {
+  const modal = document.getElementById("win-modal");
+  const message = document.getElementById("winner-message");
+  message.textContent = `${winnerName} a câștigat! Felicitări! 🎉`;
+  modal.style.display = "block";
+
+  document.getElementById("continue-button").onclick = () => {
+    modal.style.display = "none";
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'block';
+    gameStarted = false;
+    removeCanvas();
+  };
 }
