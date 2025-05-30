@@ -32,9 +32,7 @@ function startGame() {
   gameStarted = true;
 }
 
-function setup() {
-  // Nu cream canvas aici
-}
+
 
 function draw() {
   if (!gameStarted) return;
