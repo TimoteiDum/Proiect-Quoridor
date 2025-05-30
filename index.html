@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Quoridor Game</title>
@@ -15,43 +16,64 @@
       background-color: #f0f0f0;
       flex-direction: column;
     }
+
     canvas {
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     }
+
     #game-container {
       display: none;
       margin-top: 20px;
     }
+
     #start-screen {
       text-align: center;
     }
+
+    /* Modificare aici: font mai mare și îngroșat */
     .player-inputs input {
       display: block;
       margin: 5px auto;
       padding: 5px;
-      font-size: 16px;
+      font-size: 25px;
+      /* Text mai mare */
+      font-weight: bold;
+      /* Text îngroșat */
+      text-align: center;
     }
+
     .mode-selection label {
       margin: 0 10px;
     }
+
     .color-inputs {
       margin-top: 10px;
     }
+
     .color-inputs label {
       display: block;
       margin: 5px auto 0;
       font-weight: bold;
     }
+
     .color-inputs input[type="color"] {
       display: block;
       margin: 5px auto 15px;
       width: 50px;
-      height: 30px;
+      height: 35px;
       border: none;
+      /* elimină bordura */
+      outline: none;
+      /* elimină conturul la focus */
       cursor: pointer;
+      box-shadow: none;
+      /* elimină eventualele umbre */
+      background: none;
+      /* opțional, dacă apare fundal alb */
     }
   </style>
 </head>
+
 <body>
   <div id="start-screen">
     <h1>Quoridor</h1>
@@ -70,7 +92,6 @@
       <input type="text" id="player2-name" placeholder="Nume Jucător 2">
     </div>
 
-    <!-- Adaugă aici input-urile pentru culoare -->
     <div class="color-inputs">
       <label for="player1-color">Culoare Jucător 1:</label>
       <input type="color" id="player1-color" value="#0000ff">
@@ -81,6 +102,26 @@
 
     <button onclick="startGame()">Începe jocul</button>
   </div>
+  <div id="win-modal" class="modal">
+    <div class="modal-content">
+      <h2 id="winner-message"></h2>
+      <button id="continue-button">Continuă</button>
+    </div>
+  </div>
+
+  <!-- Buton care deschide fereastra -->
+  <button id="options-button">Opțiuni</button>
+
+  <!-- Fereastra de opțiuni (inițial ascunsă) -->
+  <div id="options-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button">&times;</span>
+      <h3>Opțiuni joc</h3>
+      <button id="reset-button">Resetează jocul</button>
+      <button id="giveup-button">Mă dau bătut</button>
+    </div>
+  </div>
+
 
   <div id="game-container"></div>
 
@@ -89,4 +130,5 @@
   <!-- Your game logic -->
   <script src="script.js"></script>
 </body>
+
 </html>
