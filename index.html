@@ -30,15 +30,12 @@
       text-align: center;
     }
 
-    /* Modificare aici: font mai mare și îngroșat */
     .player-inputs input {
       display: block;
       margin: 5px auto;
       padding: 5px;
       font-size: 25px;
-      /* Text mai mare */
       font-weight: bold;
-      /* Text îngroșat */
       text-align: center;
     }
 
@@ -62,14 +59,10 @@
       width: 50px;
       height: 35px;
       border: none;
-      /* elimină bordura */
       outline: none;
-      /* elimină conturul la focus */
       cursor: pointer;
       box-shadow: none;
-      /* elimină eventualele umbre */
       background: none;
-      /* opțional, dacă apare fundal alb */
     }
   </style>
 </head>
@@ -100,34 +93,38 @@
       <input type="color" id="player2-color" value="#ff0000">
     </div>
 
-    <button onclick="startGame()">Începe jocul</button>
+    <button onclick="startGame()" class="fancy-button">Începe jocul</button>
   </div>
+
+  <!-- MODAL câștigător -->
   <div id="win-modal" class="modal">
     <div class="modal-content">
       <h2 id="winner-message"></h2>
-      <button id="continue-button">Continuă</button>
+      <div class="modal-buttons">
+        <button id="rematch-button" class="fancy-button">Revansă</button>
+        <button id="newgame-button" class="fancy-button secondary">Joacă cu altcineva</button>
+      </div>
     </div>
   </div>
 
-  <!-- Buton care deschide fereastra -->
-  <button id="options-button">Opțiuni</button>
+  <!-- Buton pentru opțiuni -->
+  <button id="options-button" class="fancy-button small">Opțiuni</button>
 
-  <!-- Fereastra de opțiuni (inițial ascunsă) -->
+  <!-- MODAL opțiuni -->
   <div id="options-modal" class="modal">
     <div class="modal-content">
       <span class="close-button">&times;</span>
       <h3>Opțiuni joc</h3>
-      <button id="reset-button">Resetează jocul</button>
-      <button id="giveup-button">Mă dau bătut</button>
+      <button id="reset-button" class="fancy-button">Resetează jocul</button>
+      <button id="giveup-button" class="fancy-button secondary">Mă dau bătut</button>
     </div>
   </div>
 
-
   <div id="game-container"></div>
 
-  <!-- p5.js library -->
+  <!-- p5.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-  <!-- Your game logic -->
+  <!-- Logica jocului -->
   <script src="script.js"></script>
 </body>
 
