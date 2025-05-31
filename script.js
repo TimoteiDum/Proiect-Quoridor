@@ -150,17 +150,22 @@ function mouseReleased() {
       console.log("Nu mai ai ziduri.");
     }
   } else if (dragging && draggedPlayer) {
-    if (draggedPlayer.isAdjacent(x, y, board)) {
+    // verifică limitele mutării înainte să mute și să schimbe jucătorul
+    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && draggedPlayer.isAdjacent(x, y, board)) {
       draggedPlayer.move(x, y, board);
-
+  
       if ((currentPlayer === 0 && draggedPlayer.y === BOARD_SIZE - 1) ||
           (currentPlayer === 1 && draggedPlayer.y === 0)) {
         showWinnerModal(draggedPlayer.name);
       } else {
         currentPlayer = 1 - currentPlayer;
       }
+    } else {
+      // Mutare invalidă (în afara tablei sau neadiacentă), deci nu schimbăm jucătorul
+      console.log("Mutare invalidă: în afara tablei sau neadiacentă.");
     }
   }
+  
 
   dragging = false;
   draggedPlayer = null;
@@ -187,18 +192,32 @@ class Player {
 
   draw() {
     if (!(dragging && draggedPlayer === this)) {
+      // Umbra jucătorului - o elipsă neagră transparentă puțin offsetată
+      push();
+      noStroke();
+      fill(0, 0, 0, 80);
+      ellipse(
+        this.x * TILE_SIZE + TILE_SIZE / 2 + 5,  // offset pe X cu 5 pixeli
+        this.y * TILE_SIZE + TILE_SIZE / 2 + 6,  // offset pe Y cu 6 pixeli
+        TILE_SIZE * 0.7,
+        TILE_SIZE * 0.4
+      );
+      pop();
       fill(this.color);
       ellipse(this.x * TILE_SIZE + TILE_SIZE / 2, this.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.6);
+    }}
+    move(x, y, board) {
+      // Verifică dacă noua poziție este în limitele tablei
+      if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+        return; // nu muta pionul în afara tablei
+      }
+    
+      if (this.isAdjacent(x, y, board)) {
+        this.x = x;
+        this.y = y;
+      }
     }
-  }
-
-  move(x, y, board) {
-    if (this.isAdjacent(x, y, board)) {
-      this.x = x;
-      this.y = y;
-    }
-  }
-
+    
   isAdjacent(x, y, board) {
     const opponent = board.players[1 - board.players.indexOf(this)];
     let dx = x - this.x;
@@ -248,16 +267,32 @@ class Wall {
   }
 
   draw() {
-    fill(100);
+    // Gradient simplu manual
+    const startColor = color(120);
+    const endColor = color(60);
+    
     noStroke();
     if (this.vertical) {
-      rect(this.x * TILE_SIZE + TILE_SIZE - 5, this.y * TILE_SIZE, 10, TILE_SIZE * 2);
+      for (let i = 0; i < TILE_SIZE * 2; i++) {
+        let inter = map(i, 0, TILE_SIZE * 2, 0, 1);
+        let c = lerpColor(startColor, endColor, inter);
+        stroke(c);
+        line(this.x * TILE_SIZE + TILE_SIZE - 5, this.y * TILE_SIZE + i,
+             this.x * TILE_SIZE + TILE_SIZE + 5, this.y * TILE_SIZE + i);
+      }
     } else {
-      rect(this.x * TILE_SIZE, this.y * TILE_SIZE + TILE_SIZE - 5, TILE_SIZE * 2, 10);
+      for (let i = 0; i < TILE_SIZE * 2; i++) {
+        let inter = map(i, 0, TILE_SIZE * 2, 0, 1);
+        let c = lerpColor(startColor, endColor, inter);
+        stroke(c);
+        line(this.x * TILE_SIZE + i, this.y * TILE_SIZE + TILE_SIZE - 5,
+             this.x * TILE_SIZE + i, this.y * TILE_SIZE + TILE_SIZE + 5);
+      }
     }
-    stroke(0);
+  
+    noStroke();
   }
-}
+  }
 
 class Board {
   constructor(player1Name, player2Name, color1 = 'blue', color2 = 'red') {
@@ -269,23 +304,66 @@ class Board {
   }
 
   show() {
-    stroke(0);
+    // Umbra generală a tablei (cadru)
+    push();
+    noFill();
+    stroke(80, 40, 10, 80); // maro închis, transparent
+    strokeWeight(8);
+    rect(0, 0, BOARD_SIZE * TILE_SIZE, BOARD_SIZE * TILE_SIZE, 12);
+    pop();
+  
+    noStroke();
     for (let i = 0; i < BOARD_SIZE; i++) {
       for (let j = 0; j < BOARD_SIZE; j++) {
-        fill(240);
+        // Culori lemn
+        let baseColor = color(181, 101, 29);
+        let lightEdge = color(222, 184, 135);
+        let shadowEdge = color(120, 60, 15);
+  
+        // Umbra discretă sub pătrat pentru 3D
+        push();
+        fill(0, 0, 0, 100); // negru transparent
+        noStroke();
+        ellipse(
+          i * TILE_SIZE + TILE_SIZE / 2 + 4,
+          j * TILE_SIZE + TILE_SIZE / 2 + 6,
+          TILE_SIZE * 0.9,
+          TILE_SIZE * 0.5
+        );
+        pop();
+  
+        // Corpul pătratului (lemn)
+        fill(baseColor);
         rect(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  
+        // Linii textură lemn
+        stroke(150, 75, 0, 80);
+        for (let k = 5; k < TILE_SIZE; k += 10) {
+          line(i * TILE_SIZE + k, j * TILE_SIZE + 5, i * TILE_SIZE + k + 5, j * TILE_SIZE + TILE_SIZE - 5);
+        }
+  
+        // Highlight margini sus + stânga
+        stroke(lightEdge);
+        line(i * TILE_SIZE, j * TILE_SIZE, (i + 1) * TILE_SIZE, j * TILE_SIZE);
+        line(i * TILE_SIZE, j * TILE_SIZE, i * TILE_SIZE, (j + 1) * TILE_SIZE);
+  
+        // Umbră margini jos + dreapta
+        stroke(shadowEdge);
+        line((i + 1) * TILE_SIZE, j * TILE_SIZE, (i + 1) * TILE_SIZE, (j + 1) * TILE_SIZE);
+        line(i * TILE_SIZE, (j + 1) * TILE_SIZE, (i + 1) * TILE_SIZE, (j + 1) * TILE_SIZE);
       }
     }
-
+  
+    noStroke();
     for (const wall of this.walls) {
       wall.draw();
     }
-
+  
     for (const player of this.players) {
       player.draw();
     }
   }
-
+        
   validWall(x, y, vertical) {
     if (x < 0 || y < 0) return false;
     if (vertical) {
@@ -401,3 +479,4 @@ function showWinnerModal(winnerName) {
     removeCanvas();
   };
 }
+
