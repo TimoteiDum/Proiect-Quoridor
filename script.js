@@ -31,6 +31,15 @@ function startGame() {
   currentPlayer = 1;
   gameStarted = true;
 }
+function resetBoardSamePlayers() {
+  const player1 = board.players[0];
+  const player2 = board.players[1];
+
+  board = new Board(player1.name, player2.name, player1.color, player2.color);
+  currentPlayer = 1;
+  gameStarted = true;
+}
+
 
 // Interacțiune pentru fereastra cu opțiuni
 document.addEventListener("DOMContentLoaded", () => {
@@ -379,7 +388,12 @@ function showWinnerModal(winnerName) {
   message.textContent = `${winnerName} a câștigat! Felicitări! 🎉`;
   modal.style.display = "block";
 
-  document.getElementById("continue-button").onclick = () => {
+  document.getElementById("rematch-button").onclick = () => {
+    modal.style.display = "none";
+    resetBoardSamePlayers(); // Resetează jocul dar păstrează jucătorii
+  };
+
+  document.getElementById("newgame-button").onclick = () => {
     modal.style.display = "none";
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('start-screen').style.display = 'block';
