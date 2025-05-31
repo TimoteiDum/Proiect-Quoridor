@@ -479,4 +479,3 @@ function showWinnerModal(winnerName) {
     removeCanvas();
   };
 }
-
