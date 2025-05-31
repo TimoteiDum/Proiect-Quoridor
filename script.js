@@ -10,12 +10,15 @@ let shiftPressed = false;
 let ctrlPressed = false;
 
 let canvas;
-
 let gameStarted = false;
+let isAIMode = false;
 
 function startGame() {
+  const gameMode = document.querySelector('input[name="mode"]:checked').value;
+  isAIMode = gameMode === 'ai';
+
   const player1Name = document.getElementById('player1-name').value || "Jucător 1";
-  const player2Name = document.getElementById('player2-name').value || "Jucător 2";
+  const player2Name = isAIMode ? "AI" : document.getElementById('player2-name').value || "Jucător 2";
 
   const color1 = document.getElementById('player1-color').value || 'blue';
   const color2 = document.getElementById('player2-color').value || 'red';
@@ -28,8 +31,12 @@ function startGame() {
   canvas.parent('game-container');
 
   board = new Board(player1Name, player2Name, color1, color2);
-  currentPlayer = 1;
+  currentPlayer = 1; // Start with Player 1
   gameStarted = true;
+
+  if (isAIMode) {
+    document.getElementById('player2-name').disabled = true;
+  }
 }
 function resetBoardSamePlayers() {
   const player1 = board.players[0];
@@ -41,7 +48,6 @@ function resetBoardSamePlayers() {
 }
 
 
-// Interacțiune pentru fereastra cu opțiuni
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("options-modal");
   const openBtn = document.getElementById("options-button");
@@ -56,16 +62,16 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   document.getElementById("reset-button").onclick = () => {
-    location.reload(); // Reset joc
+    location.reload();
   };
 
   document.getElementById("giveup-button").onclick = () => {
-    alert(`${board.players[currentPlayer].name} s-a dat bătut!`);
-    location.reload(); // Sau adaugă logică pentru final de joc
+    if (board && board.players) {
+      alert(`${board.players[currentPlayer].name} s-a dat bătut!`);
+    }
+    location.reload();
   };
 });
-
-
 
 function draw() {
   if (!gameStarted) return;
@@ -116,7 +122,7 @@ function draw() {
 }
 
 function mousePressed() {
-  if (!gameStarted) return;
+  if (!gameStarted || (isAIMode && currentPlayer === 1)) return;
 
   const x = floor(mouseX / TILE_SIZE);
   const y = floor(mouseY / TILE_SIZE);
@@ -128,32 +134,55 @@ function mousePressed() {
   }
 }
 
+function resetGameState() {
+  board = null;
+  currentPlayer = 0;
+  dragging = false;
+  draggedPlayer = null;
+  shiftPressed = false;
+  ctrlPressed = false;
+  canvas = null;
+  gameStarted = false;
+  isAIMode = false;
+}
+
+
 function mouseReleased() {
-  if (!gameStarted) return;
+  if (!gameStarted || (isAIMode && currentPlayer === 1)) return;
 
   const x = floor(mouseX / TILE_SIZE);
   const y = floor(mouseY / TILE_SIZE);
   const player = board.players[currentPlayer];
 
+  // Dacă SHIFT e apăsat, încerci să pui zid
   if (shiftPressed) {
-    let vertical = ctrlPressed;
+    let vertical = ctrlPressed; // dacă CTRL e apăsat, zidul e vertical
+
+    console.log(`Încerc să plasez zid la (${x},${y}), vertical: ${vertical}`);
 
     if (player.walls > 0) {
       if (board.validWall(x, y, vertical)) {
-        board.walls.push(new Wall(x, y, vertical));
-        player.walls--;
-        currentPlayer = 1 - currentPlayer;
+        if (board.canReachGoalsAfterWall(x, y, vertical)) {
+          board.walls.push(new Wall(x, y, vertical));
+          player.walls--;
+          currentPlayer = 1 - currentPlayer;
+          if (isAIMode && currentPlayer === 1) {
+            setTimeout(aiMakeMove, 500);
+          }
+          console.log("Zid plasat cu succes.");
+        } else {
+          console.log("Plasarea zidului blocheaza toate caile!");
+        }
       } else {
-        console.log("Loc invalid pentru zid.");
+        console.log("Pozitie invalida pentru zid!");
       }
     } else {
-      console.log("Nu mai ai ziduri.");
+      console.log("Nu mai ai ziduri disponibile.");
     }
   } else if (dragging && draggedPlayer) {
-    // verifică limitele mutării înainte să mute și să schimbe jucătorul
-    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && draggedPlayer.isAdjacent(x, y, board)) {
+    if (draggedPlayer.isAdjacent(x, y, board)) {
       draggedPlayer.move(x, y, board);
-  
+
       if ((currentPlayer === 0 && draggedPlayer.y === BOARD_SIZE - 1) ||
           (currentPlayer === 1 && draggedPlayer.y === 0)) {
         showWinnerModal(draggedPlayer.name);
@@ -165,11 +194,11 @@ function mouseReleased() {
       console.log("Mutare invalidă: în afara tablei sau neadiacentă.");
     }
   }
-  
 
   dragging = false;
   draggedPlayer = null;
 }
+
 
 function keyPressed() {
   if (keyCode === SHIFT) shiftPressed = true;
@@ -377,66 +406,10 @@ class Board {
       if (wall.x === x && wall.y === y && wall.vertical === vertical) {
         return false;
       }
-  
-      if (vertical && wall.vertical) {
-        if (wall.x === x && (wall.y === y - 1 || wall.y === y || wall.y === y + 1)) {
-          return false;
-        }
-      } else if (!vertical && !wall.vertical) {
-        if (wall.y === y && (wall.x === x - 1 || wall.x === x || wall.x === x + 1)) {
-          return false;
-        }
-      } else {
-        if (vertical && wall.x === x && wall.y === y && !wall.vertical) {
-          return false;
-        }
-        if (!vertical && wall.x === x && wall.y === y && wall.vertical) {
-          return false;
-        }
-      }
     }
-  
-    // Simulează adăugarea zidului și verifică dacă jucătorii încă au drum
-    this.walls.push(new Wall(x, y, vertical));
-    const pathExists = this.players.every(player => this.hasPath(player));
-    this.walls.pop();
-  
-    return pathExists;
+    return true;
   }
-  hasPath(player) {
-    const visited = new Set();
-    const queue = [[player.x, player.y]];
-    const goalY = player === this.players[0] ? BOARD_SIZE - 1 : 0;
-  
-    while (queue.length > 0) {
-      const [x, y] = queue.shift();
-      const key = `${x},${y}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
-  
-      if (y === goalY) return true;
-  
-      const dirs = [
-        [0, -1], [0, 1], [1, 0], [-1, 0]
-      ];
-  
-      for (const [dx, dy] of dirs) {
-        const nx = x + dx;
-        const ny = y + dy;
-        if (
-          nx >= 0 && nx < BOARD_SIZE &&
-          ny >= 0 && ny < BOARD_SIZE &&
-          !this.isBlocked(x, y, nx, ny)
-        ) {
-          queue.push([nx, ny]);
-        }
-      }
-    }
-  
-    return false;
-  }
-  
-  
+
   isBlocked(x1, y1, x2, y2) {
     for (const wall of this.walls) {
       if (wall.vertical) {
@@ -457,14 +430,144 @@ class Board {
     }
     return false;
   }
+
+  canReachGoalsAfterWall(x, y, vertical) {
+    this.walls.push(new Wall(x, y, vertical));
+    let canReach = this.hasPathToGoal(0, BOARD_SIZE - 1) && this.hasPathToGoal(1, 0);
+    this.walls.pop();
+    return canReach;
+  }   
+
+  hasPathToGoal(playerIndex, goalY) {
+    const player = this.players[playerIndex];
+    let visited = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(false));
+    let queue = [{ x: player.x, y: player.y }];
+    visited[player.y][player.x] = true;
+
+    while (queue.length > 0) {
+      let { x, y } = queue.shift();
+      if (y === goalY) return true;
+
+      let moves = [
+        { x: x, y: y - 1 },
+        { x: x, y: y + 1 },
+        { x: x - 1, y: y },
+        { x: x + 1, y: y }
+      ];
+
+      const opponent = this.players[1 - playerIndex];
+      if (opponent.x === x && opponent.y === y - 1 && !this.isBlocked(x, y, x, y - 1)) {
+        moves.push({ x: x, y: y - 2 });
+      } else if (opponent.x === x && opponent.y === y + 1 && !this.isBlocked(x, y, x, y + 1)) {
+        moves.push({ x: x, y: y + 2 });
+      } else if (opponent.y === y && opponent.x === x - 1 && !this.isBlocked(x, y, x - 1, y)) {
+        moves.push({ x: x - 2, y: y });
+      } else if (opponent.y === y && opponent.x === x + 1 && !this.isBlocked(x, y, x + 1, y)) {
+        moves.push({ x: x + 2, y: y });
+      }
+
+      for (let move of moves) {
+        if (move.x >= 0 && move.x < BOARD_SIZE && move.y >= 0 && move.y < BOARD_SIZE &&
+            !visited[move.y][move.x] && player.isAdjacent(move.x, move.y, this)) {
+          queue.push(move);
+          visited[move.y][move.x] = true;
+        }
+      }
+    }
+    return false;
+  }
 }
 
-// FUNCȚIE pentru afișare mesaj de câștig
+function aiMakeMove() {
+  if (!isAIMode || currentPlayer !== 1) return;
+  const aiPlayer = board.players[1];
+
+  // Decide randomly to move (70%) or place a wall (30%) if walls are available
+  if (aiPlayer.walls > 0 && Math.random() < 0.3) {
+    aiPlaceWall();
+  } else {
+    // Collect all valid moves, including jumps
+    let possibleMoves = [
+      { x: aiPlayer.x, y: aiPlayer.y - 1 }, // Up
+      { x: aiPlayer.x, y: aiPlayer.y + 1 }, // Down
+      { x: aiPlayer.x - 1, y: aiPlayer.y }, // Left
+      { x: aiPlayer.x + 1, y: aiPlayer.y }  // Right
+    ];
+
+    const opponent = board.players[0];
+    // Add jump moves if opponent is adjacent
+    if (opponent.x === aiPlayer.x && opponent.y === aiPlayer.y - 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
+      possibleMoves.push({ x: aiPlayer.x, y: aiPlayer.y - 2 }); // Jump up
+    } else if (opponent.x === aiPlayer.x && opponent.y === aiPlayer.y + 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
+      possibleMoves.push({ x: aiPlayer.x, y: aiPlayer.y + 2 }); // Jump down
+    } else if (opponent.y === aiPlayer.y && opponent.x === aiPlayer.x - 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
+      possibleMoves.push({ x: aiPlayer.x - 2, y: aiPlayer.y }); // Jump left
+    } else if (opponent.y === aiPlayer.y && opponent.x === aiPlayer.x + 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
+      possibleMoves.push({ x: aiPlayer.x + 2, y: aiPlayer.y }); // Jump right
+    }
+
+    // Filter valid moves within board boundaries and allowed by rules
+    possibleMoves = possibleMoves.filter(move => 
+      move.x >= 0 && move.x < BOARD_SIZE && 
+      move.y >= 0 && move.y < BOARD_SIZE && 
+      aiPlayer.isAdjacent(move.x, move.y, board)
+    );
+
+    if (possibleMoves.length > 0) {
+      // Pick a random valid move
+      let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+      aiPlayer.move(move.x, move.y, board);
+
+      // Check for win
+      if (aiPlayer.y === 0) {
+        showWinnerModal(aiPlayer.name);
+      } else {
+        currentPlayer = 0;
+      }
+    } else {
+      // No valid moves, try to place a wall
+      console.log("AI: No valid moves, trying to place a wall.");
+      aiPlaceWall();
+    }
+  }
+}
+
+function aiPlaceWall() {
+  const aiPlayer = board.players[1];
+
+  // Generate possible wall positions (try all board intersections)
+  let possibleWalls = [];
+  for (let x = 0; x < BOARD_SIZE - 1; x++) {
+    for (let y = 0; y < BOARD_SIZE - 1; y++) {
+      possibleWalls.push({ x: x, y: y, vertical: true });
+      possibleWalls.push({ x: x, y: y, vertical: false });
+    }
+  }
+
+  // Filter valid walls that don't block all paths
+  possibleWalls = possibleWalls.filter(wall => 
+    board.validWall(wall.x, wall.y, wall.vertical) && 
+    board.canReachGoalsAfterWall(wall.x, wall.y, wall.vertical)
+  );
+
+  if (possibleWalls.length > 0 && aiPlayer.walls > 0) {
+    // Pick a random valid wall
+    let wall = possibleWalls[Math.floor(Math.random() * possibleWalls.length)];
+    board.walls.push(new Wall(wall.x, wall.y, wall.vertical));
+    aiPlayer.walls--;
+    currentPlayer = 0;
+  } else {
+    console.log("AI: No valid walls to place or no walls left.");
+    currentPlayer = 0;
+  }
+}
+
 function showWinnerModal(winnerName) {
   const modal = document.getElementById("win-modal");
   const message = document.getElementById("winner-message");
   message.textContent = `${winnerName} a câștigat! Felicitări! 🎉`;
   modal.style.display = "block";
+  
 
   document.getElementById("rematch-button").onclick = () => {
     modal.style.display = "none";
