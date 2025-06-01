@@ -6,7 +6,6 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
-
   background-image: url('quoridor1.jpg'); /* Fundalul pentru joc */
   background-size: cover;
   background-position: center;
@@ -20,15 +19,12 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-
   background-image: url('quoridor2.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
   background-color: rgba(255, 255, 255, 0.4); /* ceață albă semi-transparentă */
   background-blend-mode: lighten;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -84,12 +80,13 @@ button {
 button:hover {
   background-color: #005fa3;
 }
+
 #options-button {
   position: absolute;
   top: 20px;
   right: 20px;
-  padding: 10px 16px;
-  background-color: #3b82f6;
+  padding: 8px 16px; /* Aliniat cu .fancy-button.small */
+  background-color: #555; /* Aliniat cu .fancy-button.small */
   color: rgb(248, 228, 228);
   border: none;
   border-radius: 8px;
@@ -97,88 +94,10 @@ button:hover {
   z-index: 2;
 }
 
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 10;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.5);
+#options-button:hover {
+  background-color: #444; /* Aliniat cu .fancy-button.small:hover */
 }
 
-.modal-content {
-  background-color: #f9fafc;
-  margin: 15% auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  width: 300px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.modal-content button {
-  display: block;
-  margin: 10px auto;
-  padding: 10px;
-  width: 80%;
-  border: none;
-  border-radius: 8px;
-  background-color: #2563eb;
-  color: rgb(252, 252, 252);
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.modal-content button:hover {
-  background-color: #1d4ed8;
-}
-
-.close-button {
-  color: #aaa;
-  float: right;
-  font-size: 24px;
-  cursor: pointer;
-}
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.6);
-}
-
-.modal-content {
-  background-color: rgba(235, 239, 243, 0.85); /* alb-gri cu transparență 85% */
-  margin: 15% auto;
-  padding: 30px;
-  border: 2px solid #888;
-  border-radius: 12px;
-  width: 50%;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-}
-
-#continue-button {
-  margin-top: 20px;
-  padding: 10px 20px;
-  font-size: 18px;
-  border-radius: 8px;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-#continue-button:hover {
-  background-color: #2563eb;
-}
 /* MODAL styling */
 .modal {
   display: none;

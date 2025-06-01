@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Quoridor Game</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css"> <!-- Completat link-ul -->
   <style>
     body {
       margin: 0;
@@ -93,7 +93,7 @@
       <input type="color" id="player2-color" value="#ff0000">
     </div>
 
-    <button onclick="startGame()" class="fancy-button">Începe jocul</button>
+    <button type="button" onclick="startGame()" class="fancy-button">Începe jocul</button> <!-- Adăugat type="button" -->
   </div>
 
   <!-- MODAL câștigător -->
@@ -101,8 +101,8 @@
     <div class="modal-content">
       <h2 id="winner-message"></h2>
       <div class="modal-buttons">
-        <button id="rematch-button" class="fancy-button">Revansă</button>
-        <button id="newgame-button" class="fancy-button secondary">Joacă cu altcineva</button>
+        <button type="button" id="rematch-button" class="fancy-button">Revansă</button> <!-- Adăugat type="button" -->
+        <button type="button" id="newgame-button" class="fancy-button secondary">Joacă cu altcineva</button> <!-- Adăugat type="button" -->
       </div>
     </div>
   </div>
@@ -113,10 +113,10 @@
   <!-- MODAL opțiuni -->
   <div id="options-modal" class="modal">
     <div class="modal-content">
-      <span class="close-button">&times;</span>
+      <span class="close-button">×</span>
       <h3>Opțiuni joc</h3>
-      <button id="reset-button" class="fancy-button">Resetează jocul</button>
-      <button id="giveup-button" class="fancy-button secondary">Mă dau bătut</button>
+      <button type="button" id="reset-button" class="fancy-button">Resetează jocul</button> <!-- Adăugat type="button" -->
+      <button type="button" id="giveup-button" class="fancy-button secondary">Mă dau bătut</button> <!-- Adăugat type="button" -->
     </div>
   </div>
 
