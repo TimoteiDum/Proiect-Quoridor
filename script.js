@@ -33,24 +33,20 @@ function startGame() {
   canvas.parent('game-container');
 
   board = new Board(player1Name, player2Name, color1, color2);
-  currentPlayer = 1;
+  currentPlayer = 0; // Jucătorul uman începe întotdeauna
   gameStarted = true;
-  if (isComputerPlayer && currentPlayer === 1) {
-    setTimeout(computerMove, 500);
-  }
-} // Adăugat acolada de închidere
+}
+
 
 function resetBoardSamePlayers() {
   const player1 = board.players[0];
   const player2 = board.players[1];
 
   board = new Board(player1.name, player2.name, player1.color, player2.color);
-  currentPlayer = 1;
+  currentPlayer = 0; // Jucătorul uman începe
   gameStarted = true;
-  if (isComputerPlayer && currentPlayer === 1) {
-    setTimeout(computerMove, 500);
-  }
 }
+
 
 // Interacțiune pentru fereastra cu opțiuni
 document.addEventListener("DOMContentLoaded", () => {
@@ -152,6 +148,7 @@ function mouseReleased() {
         player.walls--;
         currentPlayer = 1 - currentPlayer;
 
+        // Dacă următorul jucător este calculatorul și jocul nu s-a terminat, fă mutarea acestuia
         if (isComputerPlayer && currentPlayer === 1) {
           setTimeout(computerMove, 500);
         }
@@ -171,6 +168,7 @@ function mouseReleased() {
       } else {
         currentPlayer = 1 - currentPlayer;
 
+        // Dacă următorul jucător este calculatorul și jocul nu s-a terminat, fă mutarea acestuia
         if (isComputerPlayer && currentPlayer === 1) {
           setTimeout(computerMove, 500);
         }
@@ -200,7 +198,7 @@ function computerMove() {
 
   const player = board.players[1]; // Calculatorul
 
-  // Decide aleator: mută pionul sau plasează un zid (50/50 șansă)
+  // Decide aleator: 70% șansă să mute pionul, 30% șansă să plaseze un zid
   const action = random(1) < 0.5 ? 'move' : 'placeWall';
 
   if (action === 'move') {
@@ -224,40 +222,89 @@ function computerMove() {
 
       if (player.y === 0) {
         showWinnerModal(player.name);
-        return;
+        return; // Jocul s-a terminat
       }
     } else {
-      console.log("Calculatorul nu are mutări valide pentru pion, încearcă să plaseze un zid.");
-    }
-  }
+      console.log("Calculatorul nu are mutări valide pentru pion, va încerca să plaseze un zid.");
+      // Dacă nu poate muta pionul, forțează plasarea unui zid (dacă are ziduri)
+      if (player.walls > 0) {
+        let placed = false;
+        let attempts = 0;
+        const maxAttempts = 50;
 
-  if (action === 'placeWall' || (action === 'move' && possibleMoves.length === 0)) {
-    if (player.walls > 0) {
-      let placed = false;
-      let attempts = 0;
-      const maxAttempts = 50;
+        while (!placed && attempts < maxAttempts) {
+          const x = floor(random(BOARD_SIZE - 2));
+          const y = floor(random(BOARD_SIZE - 2));
+          const vertical = random(1) < 0.5;
 
-      while (!placed && attempts < maxAttempts) {
-        const x = floor(random(BOARD_SIZE - 2));
-        const y = floor(random(BOARD_SIZE - 2));
-        const vertical = random(1) < 0.5;
-
-        if (board.validWall(x, y, vertical)) {
-          board.walls.push(new Wall(x, y, vertical));
-          player.walls--;
-          placed = true;
+          if (board.validWall(x, y, vertical)) {
+            board.walls.push(new Wall(x, y, vertical));
+            player.walls--;
+            placed = true;
+          }
+          attempts++;
         }
-        attempts++;
-      }
 
-      if (!placed) {
-        console.log("Calculatorul nu a găsit o poziție validă pentru zid.");
+        if (!placed) {
+          console.log("Calculatorul nu a găsit o poziție validă pentru zid.");
+        }
+      } else {
+        console.log("Calculatorul nu mai are ziduri și nu poate muta pionul.");
+      }
+    }
+  } else if (action === 'placeWall' && player.walls > 0) {
+    // Plasează un zid dacă are ziduri disponibile
+    let placed = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    while (!placed && attempts < maxAttempts) {
+      const x = floor(random(BOARD_SIZE - 2));
+      const y = floor(random(BOARD_SIZE - 2));
+      const vertical = random(1) < 0.5;
+
+      if (board.validWall(x, y, vertical)) {
+        board.walls.push(new Wall(x, y, vertical));
+        player.walls--;
+        placed = true;
+      }
+      attempts++;
+    }
+
+    if (!placed) {
+      console.log("Calculatorul nu a găsit o poziție validă pentru zid.");
+    }
+  } else {
+    console.log("Calculatorul nu mai are ziduri, va încerca să mute pionul.");
+    // Dacă nu mai are ziduri, forțează mutarea pionului
+    const possibleMoves = [];
+    const dirs = [
+      [0, -1], [0, 1], [1, 0], [-1, 0], // Adiacente directe
+      [0, -2], [0, 2], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 0], [-2, 0] // Sărind peste adversar
+    ];
+
+    for (const [dx, dy] of dirs) {
+      const newX = player.x + dx;
+      const newY = player.y + dy;
+      if (newX >= 0 && newX < BOARD_SIZE && newY >= 0 && newY < BOARD_SIZE && player.isAdjacent(newX, newY, board)) {
+        possibleMoves.push([newX, newY]);
+      }
+    }
+
+    if (possibleMoves.length > 0) {
+      const [newX, newY] = random(possibleMoves);
+      player.move(newX, newY, board);
+
+      if (player.y === 0) {
+        showWinnerModal(player.name);
+        return; // Jocul s-a terminat
       }
     } else {
-      console.log("Calculatorul nu mai are ziduri.");
+      console.log("Calculatorul nu are mutări valide pentru pion și nu mai are ziduri.");
     }
   }
 
+  // Setează rândul jucătorului uman
   currentPlayer = 0;
 }
 
