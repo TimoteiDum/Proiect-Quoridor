@@ -12,38 +12,43 @@ let ctrlPressed = false;
 let canvas;
 
 let gameStarted = false;
-let isAIMode = false;
+let isComputerPlayer = false;
 
 function startGame() {
-  const gameMode = document.querySelector('input[name="mode"]:checked').value;
-  isAIMode = gameMode === 'ai';
-
   const player1Name = document.getElementById('player1-name').value || "Jucător 1";
-  const player2Name = isAIMode ? "AI" : document.getElementById('player2-name').value || "Jucător 2";
+  const player2Name = document.getElementById('player2-name').value || "Jucător 2";
 
   const color1 = document.getElementById('player1-color').value || 'blue';
   const color2 = document.getElementById('player2-color').value || 'red';
-
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  isComputerPlayer = (mode === 'ai');
+  if (isComputerPlayer) {
+    document.getElementById('player2-name').value = "Calculator";
+  }
   document.getElementById('start-screen').style.display = 'none';
   const gameContainer = document.getElementById('game-container');
   gameContainer.style.display = 'block';
 
-  if (canvas) {
-    canvas.remove();
-  }
-
   canvas = createCanvas(BOARD_SIZE * TILE_SIZE + 200, BOARD_SIZE * TILE_SIZE);
-  gameContainer.appendChild(canvas.elt);
+  canvas.parent('game-container');
 
   board = new Board(player1Name, player2Name, color1, color2);
-  currentPlayer = 0;
+  currentPlayer = 0; // Jucătorul uman începe întotdeauna
   gameStarted = true;
-
-  if (isAIMode) {
-    document.getElementById('player2-name').disabled = true;
-  }
 }
 
+
+function resetBoardSamePlayers() {
+  const player1 = board.players[0];
+  const player2 = board.players[1];
+
+  board = new Board(player1.name, player2.name, player1.color, player2.color);
+  currentPlayer = 0; // Jucătorul uman începe
+  gameStarted = true;
+}
+
+
+// Interacțiune pentru fereastra cu opțiuni
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("options-modal");
   const openBtn = document.getElementById("options-button");
@@ -63,15 +68,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   document.getElementById("giveup-button").onclick = () => {
-    if (board && board.players) {
-      alert(`${board.players[currentPlayer].name} s-a dat bătut!`);
-    }
+    alert(`${board.players[currentPlayer].name} s-a dat bătut!`);
     location.reload();
   };
 });
-
-
-
 
 function draw() {
   if (!gameStarted) return;
@@ -95,12 +95,10 @@ function draw() {
   textSize(16);
   fill(player1.color);
   text(`${player1.name} - Ziduri: ${player1.walls}`, BOARD_SIZE * TILE_SIZE + 20, 20);
-
   textAlign(LEFT, BOTTOM);
   textSize(16);
   fill(player2.color);
   text(`${player2.name} - Ziduri: ${player2.walls}`, BOARD_SIZE * TILE_SIZE + 20, height - 20);
-
   let wallW = 20;
   let wallH = 10;
   let spacing = 6;
@@ -122,7 +120,7 @@ function draw() {
 }
 
 function mousePressed() {
-  if (!gameStarted || (isAIMode && currentPlayer === 1)) return;
+  if (!gameStarted) return;
 
   const x = floor(mouseX / TILE_SIZE);
   const y = floor(mouseY / TILE_SIZE);
@@ -134,134 +132,64 @@ function mousePressed() {
   }
 }
 
-function resetGameState() {
-  board = null;
-  currentPlayer = 0;
-  dragging = false;
-  draggedPlayer = null;
-  shiftPressed = false;
-  ctrlPressed = false;
-  canvas = null;
-  gameStarted = false;
-  isAIMode = false;
-}
-
-
 function mouseReleased() {
-  console.log("mouseReleased triggered", { mouseX, mouseY, shiftPressed, ctrlPressed });
+  if (!gameStarted) return;
 
-  // Verifică dacă jocul a început și dacă nu este tura AI-ului
-  if (!gameStarted || (isAIMode && currentPlayer === 1)) {
-    console.log("Action blocked: game not started or AI's turn", { gameStarted, isAIMode, currentPlayer });
-    return;
-  }
-
-  // Calculează poziția pe grilă
   const x = floor(mouseX / TILE_SIZE);
   const y = floor(mouseY / TILE_SIZE);
   const player = board.players[currentPlayer];
-  console.log("Grid position calculated", { x, y, currentPlayer, playerName: player.name, wallsLeft: player.walls });
 
-  // Dacă Shift este apăsat, încearcă să plasezi un perete
   if (shiftPressed) {
-    let vertical = ctrlPressed; // Perete vertical dacă Control este apăsat
-    console.log("Attempting to place wall", { x, y, vertical, shiftPressed, ctrlPressed });
+    let vertical = ctrlPressed;
 
     if (player.walls > 0) {
-      console.log("Player has walls available", { walls: player.walls });
       if (board.validWall(x, y, vertical)) {
-        console.log("Wall position is valid", { x, y, vertical });
-        if (board.canReachGoalsAfterWall(x, y, vertical)) {
-          console.log("Wall placement allowed: paths to goals exist");
-          board.walls.push(new Wall(x, y, vertical));
-          player.walls--;
-          console.log("Wall placed successfully", { wallsRemaining: player.walls });
-          currentPlayer = 1 - currentPlayer;
-          console.log("Player switched", { newCurrentPlayer: currentPlayer });
-          if (isAIMode && currentPlayer === 1) {
-            console.log("Scheduling AI move");
-            setTimeout(aiMakeMove, 500);
-          }
-          console.log("Zid plasat cu succes.");
-        } else {
-          console.log("Wall placement failed: Cannot reach goals after placing wall");
-        }
-      } else {
-        console.log("Wall placement failed: Invalid wall position");
-      }
-    } else {
-      console.log("Wall placement failed: No walls left for player");
-    }
-  } else {
-    // Mută pionul dacă nu plasezi un perete
-    console.log("Attempting to move pawn", { dragging, draggedPlayer: draggedPlayer ? draggedPlayer.name : null });
-    if (dragging && draggedPlayer) {
-      console.log("Pawn drag detected", { targetX: x, targetY: y });
-      let moved = board.movePawn(currentPlayer, x, y);
-      if (moved) {
-        console.log("Pawn moved successfully", { newX: player.x, newY: player.y });
+        board.walls.push(new Wall(x, y, vertical));
+        player.walls--;
         currentPlayer = 1 - currentPlayer;
-        console.log("Player switched after pawn move", { newCurrentPlayer: currentPlayer });
-        if (isAIMode && currentPlayer === 1) {
-          console.log("Scheduling AI move after pawn move");
-          setTimeout(aiMakeMove, 500);
+
+        // Dacă următorul jucător este calculatorul și jocul nu s-a terminat, fă mutarea acestuia
+        if (isComputerPlayer && currentPlayer === 1) {
+          setTimeout(computerMove, 500);
         }
       } else {
-        console.log("Pawn move failed: Invalid move");
+        console.log("Loc invalid pentru zid.");
       }
     } else {
-      console.log("No pawn drag detected");
+      console.log("Nu mai ai ziduri.");
     }
-    dragging = false;
-    draggedPlayer = null;
-    console.log("Reset dragging state", { dragging, draggedPlayer });
-  }
-}
+  } else if (dragging && draggedPlayer) {
+    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && draggedPlayer.isAdjacent(x, y, board)) {
+      draggedPlayer.move(x, y, board);
 
-function placeWall(x, y, vertical) {
-  if (!gameStarted || (isAIMode && currentPlayer === 1)) return false;
+      if ((currentPlayer === 0 && draggedPlayer.y === BOARD_SIZE - 1) ||
+          (currentPlayer === 1 && draggedPlayer.y === 0)) {
+        showWinnerModal(draggedPlayer.name);
+      } else {
+        currentPlayer = 1 - currentPlayer;
 
-  const player = board.players[currentPlayer];
-
-  if (player.walls > 0 &&
-    board.validWall(x, y, vertical) &&
-    board.canReachGoalsAfterWall(x, y, vertical)) {
-
-    board.walls.push(new Wall(x, y, vertical));
-    player.walls--;
-    currentPlayer = 1 - currentPlayer;
-
-    if (isAIMode && currentPlayer === 1) {
-      setTimeout(aiMakeMove, 500);
+        // Dacă următorul jucător este calculatorul și jocul nu s-a terminat, fă mutarea acestuia
+        if (isComputerPlayer && currentPlayer === 1) {
+          setTimeout(computerMove, 500);
+        }
+      }
+    } else {
+      console.log("Mutare invalidă: în afara tablei sau neadiacentă.");
     }
-
-    return true;
   }
 
-  return false;
+  dragging = false;
+  draggedPlayer = null;
 }
-
 
 function keyPressed() {
-  if (keyCode === SHIFT) {
-    shiftPressed = true;
-    console.log("Shift pressed");
-  }
-  if (keyCode === CONTROL) {
-    ctrlPressed = true;
-    console.log("Control pressed");
-  }
+  if (keyCode === SHIFT) shiftPressed = true;
+  if (keyCode === CONTROL) ctrlPressed = true;
 }
 
 function keyReleased() {
-  if (keyCode === SHIFT) {
-    shiftPressed = false;
-    console.log("Shift released");
-  }
-  if (keyCode === CONTROL) {
-    ctrlPressed = false;
-    console.log("Control released");
-  }
+  if (keyCode === SHIFT) shiftPressed = false;
+  if (keyCode === CONTROL) ctrlPressed = false;
 }
 
 // Funcție pentru mutarea calculatorului (modul "easy")
@@ -391,13 +319,12 @@ class Player {
 
   draw() {
     if (!(dragging && draggedPlayer === this)) {
-      // Umbra jucătorului - o elipsă neagră transparentă puțin offsetată
       push();
       noStroke();
       fill(0, 0, 0, 80);
       ellipse(
-        this.x * TILE_SIZE + TILE_SIZE / 2 + 5,  // offset pe X cu 5 pixeli
-        this.y * TILE_SIZE + TILE_SIZE / 2 + 6,  // offset pe Y cu 6 pixeli
+        this.x * TILE_SIZE + TILE_SIZE / 2 + 5,
+        this.y * TILE_SIZE + TILE_SIZE / 2 + 6,
         TILE_SIZE * 0.7,
         TILE_SIZE * 0.4
       );
@@ -408,12 +335,14 @@ class Player {
   }
 
   move(x, y, board) {
+    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+      return;
+    }
+
     if (this.isAdjacent(x, y, board)) {
       this.x = x;
       this.y = y;
-      return true;
     }
-    return false;
   }
 
   isAdjacent(x, y, board) {
@@ -421,7 +350,7 @@ class Player {
     let dx = x - this.x;
     let dy = y - this.y;
 
-    if ((abs(dx) === 1 && dy === 0) || (abs(dy) === 1 && dx === 0)) {
+    if (abs(dx) + abs(dy) === 1) {
       return !board.isBlocked(this.x, this.y, x, y);
     }
 
@@ -465,14 +394,29 @@ class Wall {
   }
 
   draw() {
-    fill(100);
+    const startColor = color(120);
+    const endColor = color(60);
+
     noStroke();
     if (this.vertical) {
-      rect(this.x * TILE_SIZE + TILE_SIZE - 5, this.y * TILE_SIZE, 10, TILE_SIZE * 2);
+      for (let i = 0; i < TILE_SIZE * 2; i++) {
+        let inter = map(i, 0, TILE_SIZE * 2, 0, 1);
+        let c = lerpColor(startColor, endColor, inter);
+        stroke(c);
+        line(this.x * TILE_SIZE + TILE_SIZE - 5, this.y * TILE_SIZE + i,
+          this.x * TILE_SIZE + TILE_SIZE + 5, this.y * TILE_SIZE + i);
+      }
     } else {
-      rect(this.x * TILE_SIZE, this.y * TILE_SIZE + TILE_SIZE - 5, TILE_SIZE * 2, 10);
+      for (let i = 0; i < TILE_SIZE * 2; i++) {
+        let inter = map(i, 0, TILE_SIZE * 2, 0, 1);
+        let c = lerpColor(startColor, endColor, inter);
+        stroke(c);
+        line(this.x * TILE_SIZE + i, this.y * TILE_SIZE + TILE_SIZE - 5,
+          this.x * TILE_SIZE + i, this.y * TILE_SIZE + TILE_SIZE + 5);
+      }
     }
-    stroke(0);
+
+    noStroke();
   }
 }
 
@@ -486,14 +430,50 @@ class Board {
   }
 
   show() {
-    stroke(0);
+    push();
+    noFill();
+    stroke(80, 40, 10, 80);
+    strokeWeight(8);
+    rect(0, 0, BOARD_SIZE * TILE_SIZE, BOARD_SIZE * TILE_SIZE, 12);
+    pop();
+
+    noStroke();
     for (let i = 0; i < BOARD_SIZE; i++) {
       for (let j = 0; j < BOARD_SIZE; j++) {
-        fill(240);
+        let baseColor = color(181, 101, 29);
+        let lightEdge = color(222, 184, 135);
+        let shadowEdge = color(120, 60, 15);
+
+        push();
+        fill(0, 0, 0, 100);
+        noStroke();
+        ellipse(
+          i * TILE_SIZE + TILE_SIZE / 2 + 4,
+          j * TILE_SIZE + TILE_SIZE / 2 + 6,
+          TILE_SIZE * 0.9,
+          TILE_SIZE * 0.5
+        );
+        pop();
+
+        fill(baseColor);
         rect(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+        stroke(150, 75, 0, 80);
+        for (let k = 5; k < TILE_SIZE; k += 10) {
+          line(i * TILE_SIZE + k, j * TILE_SIZE + 5, i * TILE_SIZE + k + 5, j * TILE_SIZE + TILE_SIZE - 5);
+        }
+
+        stroke(lightEdge);
+        line(i * TILE_SIZE, j * TILE_SIZE, (i + 1) * TILE_SIZE, j * TILE_SIZE);
+        line(i * TILE_SIZE, j * TILE_SIZE, i * TILE_SIZE, (j + 1) * TILE_SIZE);
+
+        stroke(shadowEdge);
+        line((i + 1) * TILE_SIZE, j * TILE_SIZE, (i + 1) * TILE_SIZE, (j + 1) * TILE_SIZE);
+        line(i * TILE_SIZE, (j + 1) * TILE_SIZE, (i + 1) * TILE_SIZE, (j + 1) * TILE_SIZE);
       }
     }
 
+    noStroke();
     for (const wall of this.walls) {
       wall.draw();
     }
@@ -515,12 +495,63 @@ class Board {
       if (wall.x === x && wall.y === y && wall.vertical === vertical) {
         return false;
       }
-      if (vertical && wall.vertical && x === wall.x && (y === wall.y - 1 || y === wall.y + 1)) return false;
-      if (!vertical && !wall.vertical && y === wall.y && (x === wall.x - 1 || x === wall.x + 1)) return false;
-      if (vertical && !wall.vertical && x === wall.x && (y === wall.y || y === wall.y - 1)) return false;
-      if (!vertical && wall.vertical && y === wall.y && (x === wall.x || x === wall.x - 1)) return false;
+
+      if (vertical && wall.vertical) {
+        if (wall.x === x && (wall.y === y - 1 || wall.y === y || wall.y === y + 1)) {
+          return false;
+        }
+      } else if (!vertical && !wall.vertical) {
+        if (wall.y === y && (wall.x === x - 1 || wall.x === x || wall.x === x + 1)) {
+          return false;
+        }
+      } else {
+        if (vertical && wall.x === x && wall.y === y && !wall.vertical) {
+          return false;
+        }
+        if (!vertical && wall.x === x && wall.y === y && wall.vertical) {
+          return false;
+        }
+      }
     }
-    return true;
+
+    this.walls.push(new Wall(x, y, vertical));
+    const pathExists = this.players.every(player => this.hasPath(player));
+    this.walls.pop();
+
+    return pathExists;
+  }
+
+  hasPath(player) {
+    const visited = new Set();
+    const queue = [[player.x, player.y]];
+    const goalY = player === this.players[0] ? BOARD_SIZE - 1 : 0;
+
+    while (queue.length > 0) {
+      const [x, y] = queue.shift();
+      const key = `${x},${y}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+
+      if (y === goalY) return true;
+
+      const dirs = [
+        [0, -1], [0, 1], [1, 0], [-1, 0]
+      ];
+
+      for (const [dx, dy] of dirs) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (
+          nx >= 0 && nx < BOARD_SIZE &&
+          ny >= 0 && ny < BOARD_SIZE &&
+          !this.isBlocked(x, y, nx, ny)
+        ) {
+          queue.push([nx, ny]);
+        }
+      }
+    }
+
+    return false;
   }
 
   isBlocked(x1, y1, x2, y2) {
@@ -543,187 +574,33 @@ class Board {
     }
     return false;
   }
-
-  canReachGoalsAfterWall(x, y, vertical) {
-    console.log("Checking if goals can be reached after placing wall", { x, y, vertical });
-    this.walls.push(new Wall(x, y, vertical));
-    let canReachPlayer1 = this.hasPathToGoal(0, BOARD_SIZE - 1); // Jucător 1 -> y: 8
-    let canReachPlayer2 = this.hasPathToGoal(1, 0); // Jucător 2 -> y: 0
-    console.log("Path check results", { canReachPlayer1, canReachPlayer2 });
-    this.walls.pop();
-    return canReachPlayer1 && canReachPlayer2;
-  }
-
-  hasPathToGoal(playerIndex, goalY) {
-    const player = this.players[playerIndex];
-    let visited = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(false));
-    let queue = [{ x: player.x, y: player.y }];
-    visited[player.y][player.x] = true;
-    console.log(`Checking path for player ${playerIndex} from (${player.x}, ${player.y}) to y=${goalY}`);
-
-    while (queue.length > 0) {
-      let { x, y } = queue.shift();
-      console.log(`Exploring position (${x}, ${y})`);
-      if (y === goalY) {
-        console.log(`Goal reached for player ${playerIndex} at (${x}, ${y})`);
-        return true;
-      }
-
-      let moves = [
-        { x: x, y: y - 1 },
-        { x: x, y: y + 1 },
-        { x: x - 1, y: y },
-        { x: x + 1, y: y }
-      ];
-
-      const opponent = this.players[1 - playerIndex];
-      if (opponent.x === x && opponent.y === y - 1 && !this.isBlocked(x, y, x, y - 1)) {
-        moves.push({ x: x, y: y - 2 });
-      } else if (opponent.x === x && opponent.y === y + 1 && !this.isBlocked(x, y, x, y + 1)) {
-        moves.push({ x: x, y: y + 2 });
-      } else if (opponent.y === y && opponent.x === x - 1 && !this.isBlocked(x, y, x - 1, y)) {
-        moves.push({ x: x - 2, y: y });
-      } else if (opponent.y === y && opponent.x === x + 1 && !this.isBlocked(x, y, x + 1, y)) {
-        moves.push({ x: x + 2, y: y });
-      }
-
-      for (let move of moves) {
-        if (
-          move.x >= 0 &&
-          move.x < BOARD_SIZE &&
-          move.y >= 0 &&
-          move.y < BOARD_SIZE &&
-          !visited[move.y][move.x] &&
-          player.isAdjacent(move.x, move.y, this)
-        ) {
-          console.log(`Adding valid move to queue: (${move.x}, ${move.y})`);
-          queue.push(move);
-          visited[move.y][move.x] = true;
-        } else {
-          console.log(`Invalid move skipped: (${move.x}, ${move.y})`, {
-            inBounds: move.x >= 0 && move.x < BOARD_SIZE && move.y >= 0 && move.y < BOARD_SIZE,
-            notVisited: !visited[move.y][move.x],
-            isAdjacent: player.isAdjacent(move.x, move.y, this)
-          });
-        }
-      }
-    }
-    console.log(`No path found for player ${playerIndex} to y=${goalY}`);
-    return false;
-  }
-
-  movePawn(playerIndex, x, y) {
-    const player = this.players[playerIndex];
-    if (player.isAdjacent(x, y, this)) {
-      player.move(x, y, this);
-
-      if ((playerIndex === 0 && y === BOARD_SIZE - 1) || (playerIndex === 1 && y === 0)) {
-        showWinnerModal(player.name);
-        return true;
-      }
-      return true;
-    }
-    return false;
-  }
 }
 
-function aiMakeMove() {
-  if (!isAIMode || currentPlayer !== 1) return;
-  const aiPlayer = board.players[1];
-
-  if (aiPlayer.walls > 0 && Math.random() < 0.5) {
-    aiPlaceWall();
-  } else {
-    // Collect all valid moves, including jumps
-    let possibleMoves = [
-      { x: aiPlayer.x, y: aiPlayer.y - 1 },
-      { x: aiPlayer.x, y: aiPlayer.y + 1 },
-      { x: aiPlayer.x - 1, y: aiPlayer.y },
-      { x: aiPlayer.x + 1, y: aiPlayer.y }
-    ];
-
-    const opponent = board.players[0];
-    // Add jump moves if opponent is adjacent
-    if (opponent.x === aiPlayer.x && opponent.y === aiPlayer.y - 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
-      possibleMoves.push({ x: aiPlayer.x, y: aiPlayer.y - 2 });
-    } else if (opponent.x === aiPlayer.x && opponent.y === aiPlayer.y + 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
-      possibleMoves.push({ x: aiPlayer.x, y: aiPlayer.y + 2 });
-    } else if (opponent.y === aiPlayer.y && opponent.x === aiPlayer.x - 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
-      possibleMoves.push({ x: aiPlayer.x - 2, y: aiPlayer.y });
-    } else if (opponent.y === aiPlayer.y && opponent.x === aiPlayer.x + 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
-      possibleMoves.push({ x: aiPlayer.x + 2, y: aiPlayer.y });
-    }
-
-    possibleMoves = possibleMoves.filter(move =>
-      move.x >= 0 && move.x < BOARD_SIZE &&
-      move.y >= 0 && move.y < BOARD_SIZE &&
-      aiPlayer.isAdjacent(move.x, move.y, board)
-    );
-
-    if (possibleMoves.length > 0) {
-      // Pick a random valid move
-      let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-      if (board.movePawn(1, move.x, move.y)) {
-        currentPlayer = 0;
-      }
-    } else {
-      // No valid moves, try to place a wall
-      console.log("AI: No valid moves, trying to place a wall.");
-      aiPlaceWall();
-    }
-  }
-}
-
-function aiPlaceWall() {
-  const aiPlayer = board.players[1];
-
-  // Generate possible wall positions (try all board intersections)
-  let possibleWalls = [];
-  for (let x = 0; x < BOARD_SIZE - 1; x++) {
-    for (let y = 0; y < BOARD_SIZE - 1; y++) {
-      possibleWalls.push({ x: x, y: y, vertical: true });
-      possibleWalls.push({ x: x, y: y, vertical: false });
-    }
-  }
-
-  possibleWalls = possibleWalls.filter(wall =>
-    board.validWall(wall.x, wall.y, wall.vertical) &&
-    board.canReachGoalsAfterWall(wall.x, wall.y, wall.vertical)
-  );
-
-  if (possibleWalls.length > 0 && aiPlayer.walls > 0) {
-    // Pick a random valid wall
-    let wall = possibleWalls[Math.floor(Math.random() * possibleWalls.length)];
-    board.walls.push(new Wall(wall.x, wall.y, wall.vertical));
-    aiPlayer.walls--;
-    currentPlayer = 0;
-  } else {
-    console.log("AI: No valid walls to place or no walls left.");
-    currentPlayer = 0;
-  }
-}
-
+// FUNCȚIE pentru afișare mesaj de câștig
 function showWinnerModal(winnerName) {
   const modal = document.getElementById("win-modal");
   const message = document.getElementById("winner-message");
   message.textContent = `${winnerName} a câștigat! Felicitări! 🎉`;
   modal.style.display = "block";
 
-  // Gestionare „Revansă” (resetează jocul cu aceleași setări)
   document.getElementById("rematch-button").onclick = () => {
     modal.style.display = "none";
-    resetGameState();
-    startGame(); // Reîncepe jocul cu setările curente
+    resetBoardSamePlayers();
   };
 
-  // Gestionare „Joacă cu altcineva” (întoarce-te la ecranul de start)
   document.getElementById("newgame-button").onclick = () => {
     modal.style.display = "none";
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('start-screen').style.display = 'block';
-    resetGameState();
-    if (canvas) {
-      canvas.remove();
-    }
+    gameStarted = false;
+    removeCanvas();
   };
+}
+
+// Adaugă funcția removeCanvas pentru a elimina canvas-ul p5.js
+function removeCanvas() {
+  if (canvas) {
+    canvas.remove(); // Metodă p5.js pentru a elimina canvas-ul
+    canvas = null;
+  }
 }
