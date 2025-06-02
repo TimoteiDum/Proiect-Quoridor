@@ -5,8 +5,8 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
-
-  background-image: url('quoridor1.jpg'); /* Fundalul pentru joc */
+  flex-direction: column;
+  background-image: url('quoridor1.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -254,3 +254,51 @@ button:hover {
   font-weight: bold;
   cursor: pointer;
 }
+
+    canvas {
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    #game-container {
+      display: none;
+      margin-top: 20px;
+    }
+
+    #start-screen {
+      text-align: center;
+    }
+
+    .player-inputs input {
+      display: block;
+      margin: 5px auto;
+      padding: 5px;
+      font-size: 25px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .mode-selection label {
+      margin: 0 10px;
+    }
+
+    .color-inputs {
+      margin-top: 10px;
+    }
+
+    .color-inputs label {
+      display: block;
+      margin: 5px auto 0;
+      font-weight: bold;
+    }
+
+    .color-inputs input[type="color"] {
+      display: block;
+      margin: 5px auto 15px;
+      width: 50px;
+      height: 35px;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      box-shadow: none;
+      background: none;
+    }

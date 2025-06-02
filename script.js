@@ -30,12 +30,12 @@ function startGame() {
   if (canvas) {
     canvas.remove();
   }
-  
+
   canvas = createCanvas(BOARD_SIZE * TILE_SIZE + 200, BOARD_SIZE * TILE_SIZE);
-  gameContainer.appendChild(canvas.elt); 
+  gameContainer.appendChild(canvas.elt);
 
   board = new Board(player1Name, player2Name, color1, color2);
-  currentPlayer = 0; 
+  currentPlayer = 0;
   gameStarted = true;
 
   if (isAIMode) {
@@ -146,39 +146,72 @@ function resetGameState() {
 
 
 function mouseReleased() {
-  if (!gameStarted || (isAIMode && currentPlayer === 1)) return;
+  console.log("mouseReleased triggered", { mouseX, mouseY, shiftPressed, ctrlPressed });
 
+  // Verifică dacă jocul a început și dacă nu este tura AI-ului
+  if (!gameStarted || (isAIMode && currentPlayer === 1)) {
+    console.log("Action blocked: game not started or AI's turn", { gameStarted, isAIMode, currentPlayer });
+    return;
+  }
+
+  // Calculează poziția pe grilă
   const x = floor(mouseX / TILE_SIZE);
   const y = floor(mouseY / TILE_SIZE);
   const player = board.players[currentPlayer];
+  console.log("Grid position calculated", { x, y, currentPlayer, playerName: player.name, wallsLeft: player.walls });
 
+  // Dacă Shift este apăsat, încearcă să plasezi un perete
   if (shiftPressed) {
-    let vertical = ctrlPressed;
+    let vertical = ctrlPressed; // Perete vertical dacă Control este apăsat
+    console.log("Attempting to place wall", { x, y, vertical, shiftPressed, ctrlPressed });
 
     if (player.walls > 0) {
+      console.log("Player has walls available", { walls: player.walls });
       if (board.validWall(x, y, vertical)) {
+        console.log("Wall position is valid", { x, y, vertical });
         if (board.canReachGoalsAfterWall(x, y, vertical)) {
+          console.log("Wall placement allowed: paths to goals exist");
           board.walls.push(new Wall(x, y, vertical));
           player.walls--;
+          console.log("Wall placed successfully", { wallsRemaining: player.walls });
           currentPlayer = 1 - currentPlayer;
+          console.log("Player switched", { newCurrentPlayer: currentPlayer });
           if (isAIMode && currentPlayer === 1) {
-            setTimeout(aiMakeMove, 300);
+            console.log("Scheduling AI move");
+            setTimeout(aiMakeMove, 500);
           }
+        } else {
+          console.log("Wall placement failed: Cannot reach goals after placing wall");
         }
+      } else {
+        console.log("Wall placement failed: Invalid wall position");
       }
+    } else {
+      console.log("Wall placement failed: No walls left for player");
     }
   } else {
+    // Mută pionul dacă nu plasezi un perete
+    console.log("Attempting to move pawn", { dragging, draggedPlayer: draggedPlayer ? draggedPlayer.name : null });
     if (dragging && draggedPlayer) {
+      console.log("Pawn drag detected", { targetX: x, targetY: y });
       let moved = board.movePawn(currentPlayer, x, y);
       if (moved) {
+        console.log("Pawn moved successfully", { newX: player.x, newY: player.y });
         currentPlayer = 1 - currentPlayer;
+        console.log("Player switched after pawn move", { newCurrentPlayer: currentPlayer });
         if (isAIMode && currentPlayer === 1) {
-          setTimeout(aiMakeMove, 300);
+          console.log("Scheduling AI move after pawn move");
+          setTimeout(aiMakeMove, 500);
         }
+      } else {
+        console.log("Pawn move failed: Invalid move");
       }
+    } else {
+      console.log("No pawn drag detected");
     }
     dragging = false;
     draggedPlayer = null;
+    console.log("Reset dragging state", { dragging, draggedPlayer });
   }
 }
 
@@ -188,9 +221,9 @@ function placeWall(x, y, vertical) {
   const player = board.players[currentPlayer];
 
   if (player.walls > 0 &&
-      board.validWall(x, y, vertical) &&
-      board.canReachGoalsAfterWall(x, y, vertical)) {
-        
+    board.validWall(x, y, vertical) &&
+    board.canReachGoalsAfterWall(x, y, vertical)) {
+
     board.walls.push(new Wall(x, y, vertical));
     player.walls--;
     currentPlayer = 1 - currentPlayer;
@@ -204,7 +237,6 @@ function placeWall(x, y, vertical) {
 
   return false;
 }
-
 
 function keyPressed() {
   if (keyCode === SHIFT) {
@@ -382,10 +414,13 @@ class Board {
   }
 
   canReachGoalsAfterWall(x, y, vertical) {
+    console.log("Checking if goals can be reached after placing wall", { x, y, vertical });
     this.walls.push(new Wall(x, y, vertical));
-    let canReach = this.hasPathToGoal(0, BOARD_SIZE - 1) && this.hasPathToGoal(1, 0);
+    let canReachPlayer1 = this.hasPathToGoal(0, BOARD_SIZE - 1); // Jucător 1 -> y: 8
+    let canReachPlayer2 = this.hasPathToGoal(1, 0); // Jucător 2 -> y: 0
+    console.log("Path check results", { canReachPlayer1, canReachPlayer2 });
     this.walls.pop();
-    return canReach;
+    return canReachPlayer1 && canReachPlayer2;
   }
 
   hasPathToGoal(playerIndex, goalY) {
@@ -393,10 +428,15 @@ class Board {
     let visited = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(false));
     let queue = [{ x: player.x, y: player.y }];
     visited[player.y][player.x] = true;
+    console.log(`Checking path for player ${playerIndex} from (${player.x}, ${player.y}) to y=${goalY}`);
 
     while (queue.length > 0) {
       let { x, y } = queue.shift();
-      if (y === goalY) return true;
+      console.log(`Exploring position (${x}, ${y})`);
+      if (y === goalY) {
+        console.log(`Goal reached for player ${playerIndex} at (${x}, ${y})`);
+        return true;
+      }
 
       let moves = [
         { x: x, y: y - 1 },
@@ -417,13 +457,27 @@ class Board {
       }
 
       for (let move of moves) {
-        if (move.x >= 0 && move.x < BOARD_SIZE && move.y >= 0 && move.y < BOARD_SIZE &&
-            !visited[move.y][move.x] && player.isAdjacent(move.x, move.y, this)) {
+        if (
+          move.x >= 0 &&
+          move.x < BOARD_SIZE &&
+          move.y >= 0 &&
+          move.y < BOARD_SIZE &&
+          !visited[move.y][move.x] &&
+          player.isAdjacent(move.x, move.y, this)
+        ) {
+          console.log(`Adding valid move to queue: (${move.x}, ${move.y})`);
           queue.push(move);
           visited[move.y][move.x] = true;
+        } else {
+          console.log(`Invalid move skipped: (${move.x}, ${move.y})`, {
+            inBounds: move.x >= 0 && move.x < BOARD_SIZE && move.y >= 0 && move.y < BOARD_SIZE,
+            notVisited: !visited[move.y][move.x],
+            isAdjacent: player.isAdjacent(move.x, move.y, this)
+          });
         }
       }
     }
+    console.log(`No path found for player ${playerIndex} to y=${goalY}`);
     return false;
   }
 
@@ -431,7 +485,7 @@ class Board {
     const player = this.players[playerIndex];
     if (player.isAdjacent(x, y, this)) {
       player.move(x, y, this);
-      
+
       if ((playerIndex === 0 && y === BOARD_SIZE - 1) || (playerIndex === 1 && y === 0)) {
         showWinnerModal(player.name);
         return true;
@@ -467,9 +521,9 @@ function aiMakeMove() {
       possibleMoves.push({ x: aiPlayer.x + 2, y: aiPlayer.y });
     }
 
-    possibleMoves = possibleMoves.filter(move => 
-      move.x >= 0 && move.x < BOARD_SIZE && 
-      move.y >= 0 && move.y < BOARD_SIZE && 
+    possibleMoves = possibleMoves.filter(move =>
+      move.x >= 0 && move.x < BOARD_SIZE &&
+      move.y >= 0 && move.y < BOARD_SIZE &&
       aiPlayer.isAdjacent(move.x, move.y, board)
     );
 
@@ -495,8 +549,8 @@ function aiPlaceWall() {
     }
   }
 
-  possibleWalls = possibleWalls.filter(wall => 
-    board.validWall(wall.x, wall.y, wall.vertical) && 
+  possibleWalls = possibleWalls.filter(wall =>
+    board.validWall(wall.x, wall.y, wall.vertical) &&
     board.canReachGoalsAfterWall(wall.x, wall.y, wall.vertical)
   );
 
@@ -516,14 +570,21 @@ function showWinnerModal(winnerName) {
   message.textContent = `${winnerName} a câștigat! Felicitări! 🎉`;
   modal.style.display = "block";
 
-  document.getElementById("continue-button").onclick = () => {
+  // Gestionare „Revansă” (resetează jocul cu aceleași setări)
+  document.getElementById("rematch-button").onclick = () => {
+    modal.style.display = "none";
+    resetGameState();
+    startGame(); // Reîncepe jocul cu setările curente
+  };
+
+  // Gestionare „Joacă cu altcineva” (întoarce-te la ecranul de start)
+  document.getElementById("newgame-button").onclick = () => {
     modal.style.display = "none";
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('start-screen').style.display = 'block';
-    gameStarted = false;
+    resetGameState();
     if (canvas) {
       canvas.remove();
     }
   };
-
 }

@@ -1,72 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <title>Quoridor Game</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f0f0f0;
-      flex-direction: column;
-    }
-
-    canvas {
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    }
-
-    #game-container {
-      display: none;
-      margin-top: 20px;
-    }
-
-    #start-screen {
-      text-align: center;
-    }
-
-    .player-inputs input {
-      display: block;
-      margin: 5px auto;
-      padding: 5px;
-      font-size: 25px;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    .mode-selection label {
-      margin: 0 10px;
-    }
-
-    .color-inputs {
-      margin-top: 10px;
-    }
-
-    .color-inputs label {
-      display: block;
-      margin: 5px auto 0;
-      font-weight: bold;
-    }
-
-    .color-inputs input[type="color"] {
-      display: block;
-      margin: 5px auto 15px;
-      width: 50px;
-      height: 35px;
-      border: none;
-      outline: none;
-      cursor: pointer;
-      box-shadow: none;
-      background: none;
-    }
-  </style>
+  <!-- p5.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <!-- Logica jocului -->
+  <script src="script.js"></script>
 </head>
-
 <body>
   <div id="start-screen">
     <h1>Quoridor</h1>
@@ -84,15 +26,12 @@
       <input type="text" id="player1-name" placeholder="Nume Jucător 1">
       <input type="text" id="player2-name" placeholder="Nume Jucător 2">
     </div>
-
     <div class="color-inputs">
       <label for="player1-color">Culoare Jucător 1:</label>
       <input type="color" id="player1-color" value="#0000ff">
-
       <label for="player2-color">Culoare Jucător 2:</label>
       <input type="color" id="player2-color" value="#ff0000">
     </div>
-
     <button onclick="startGame()" class="fancy-button">Începe jocul</button>
   </div>
 
@@ -113,7 +52,7 @@
   <!-- MODAL opțiuni -->
   <div id="options-modal" class="modal">
     <div class="modal-content">
-      <span class="close-button">&times;</span>
+      <span class="close-button">×</span>
       <h3>Opțiuni joc</h3>
       <button id="reset-button" class="fancy-button">Resetează jocul</button>
       <button id="giveup-button" class="fancy-button secondary">Mă dau bătut</button>
@@ -121,11 +60,5 @@
   </div>
 
   <div id="game-container"></div>
-
-  <!-- p5.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-  <!-- Logica jocului -->
-  <script src="script.js"></script>
 </body>
-
 </html>
