@@ -83,6 +83,7 @@ button {
 button:hover {
   background-color: #005fa3;
 }
+
 #options-button {
   position: absolute;
   top: 20px;

@@ -10,6 +10,7 @@ let shiftPressed = false;
 let ctrlPressed = false;
 
 let canvas;
+
 let gameStarted = false;
 let isAIMode = false;
 
@@ -57,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   document.getElementById("reset-button").onclick = () => {
+    alert(`${board.players[currentPlayer].name} s-a dat bătut!`);
     location.reload();
   };
 
@@ -180,6 +182,7 @@ function mouseReleased() {
             console.log("Scheduling AI move");
             setTimeout(aiMakeMove, 500);
           }
+          console.log("Zid plasat cu succes.");
         } else {
           console.log("Wall placement failed: Cannot reach goals after placing wall");
         }
@@ -238,6 +241,7 @@ function placeWall(x, y, vertical) {
   return false;
 }
 
+
 function keyPressed() {
   if (keyCode === SHIFT) {
     shiftPressed = true;
@@ -260,6 +264,122 @@ function keyReleased() {
   }
 }
 
+// Funcție pentru mutarea calculatorului (modul "easy")
+function computerMove() {
+  if (!isComputerPlayer || currentPlayer !== 1) return;
+
+  const player = board.players[1]; // Calculatorul
+
+  // Decide aleator: 70% șansă să mute pionul, 30% șansă să plaseze un zid
+  const action = random(1) < 0.5 ? 'move' : 'placeWall';
+
+  if (action === 'move') {
+    const possibleMoves = [];
+    const dirs = [
+      [0, -1], [0, 1], [1, 0], [-1, 0], // Adiacente directe
+      [0, -2], [0, 2], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 0], [-2, 0] // Sărind peste adversar
+    ];
+
+    for (const [dx, dy] of dirs) {
+      const newX = player.x + dx;
+      const newY = player.y + dy;
+      if (newX >= 0 && newX < BOARD_SIZE && newY >= 0 && newY < BOARD_SIZE && player.isAdjacent(newX, newY, board)) {
+        possibleMoves.push([newX, newY]);
+      }
+    }
+
+    if (possibleMoves.length > 0) {
+      const [newX, newY] = random(possibleMoves);
+      player.move(newX, newY, board);
+
+      if (player.y === 0) {
+        showWinnerModal(player.name);
+        return; // Jocul s-a terminat
+      }
+    } else {
+      console.log("Calculatorul nu are mutări valide pentru pion, va încerca să plaseze un zid.");
+      // Dacă nu poate muta pionul, forțează plasarea unui zid (dacă are ziduri)
+      if (player.walls > 0) {
+        let placed = false;
+        let attempts = 0;
+        const maxAttempts = 50;
+
+        while (!placed && attempts < maxAttempts) {
+          const x = floor(random(BOARD_SIZE - 2));
+          const y = floor(random(BOARD_SIZE - 2));
+          const vertical = random(1) < 0.5;
+
+          if (board.validWall(x, y, vertical)) {
+            board.walls.push(new Wall(x, y, vertical));
+            player.walls--;
+            placed = true;
+          }
+          attempts++;
+        }
+
+        if (!placed) {
+          console.log("Calculatorul nu a găsit o poziție validă pentru zid.");
+        }
+      } else {
+        console.log("Calculatorul nu mai are ziduri și nu poate muta pionul.");
+      }
+    }
+  } else if (action === 'placeWall' && player.walls > 0) {
+    // Plasează un zid dacă are ziduri disponibile
+    let placed = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    while (!placed && attempts < maxAttempts) {
+      const x = floor(random(BOARD_SIZE - 2));
+      const y = floor(random(BOARD_SIZE - 2));
+      const vertical = random(1) < 0.5;
+
+      if (board.validWall(x, y, vertical)) {
+        board.walls.push(new Wall(x, y, vertical));
+        player.walls--;
+        placed = true;
+      }
+      attempts++;
+    }
+
+    if (!placed) {
+      console.log("Calculatorul nu a găsit o poziție validă pentru zid.");
+    }
+  } else {
+    console.log("Calculatorul nu mai are ziduri, va încerca să mute pionul.");
+    // Dacă nu mai are ziduri, forțează mutarea pionului
+    const possibleMoves = [];
+    const dirs = [
+      [0, -1], [0, 1], [1, 0], [-1, 0], // Adiacente directe
+      [0, -2], [0, 2], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 0], [-2, 0] // Sărind peste adversar
+    ];
+
+    for (const [dx, dy] of dirs) {
+      const newX = player.x + dx;
+      const newY = player.y + dy;
+      if (newX >= 0 && newX < BOARD_SIZE && newY >= 0 && newY < BOARD_SIZE && player.isAdjacent(newX, newY, board)) {
+        possibleMoves.push([newX, newY]);
+      }
+    }
+
+    if (possibleMoves.length > 0) {
+      const [newX, newY] = random(possibleMoves);
+      player.move(newX, newY, board);
+
+      if (player.y === 0) {
+        showWinnerModal(player.name);
+        return; // Jocul s-a terminat
+      }
+    } else {
+      console.log("Calculatorul nu are mutări valide pentru pion și nu mai are ziduri.");
+    }
+  }
+
+  // Setează rândul jucătorului uman
+  currentPlayer = 0;
+}
+
 class Player {
   constructor(x, y, color, name = '') {
     this.x = x;
@@ -271,6 +391,17 @@ class Player {
 
   draw() {
     if (!(dragging && draggedPlayer === this)) {
+      // Umbra jucătorului - o elipsă neagră transparentă puțin offsetată
+      push();
+      noStroke();
+      fill(0, 0, 0, 80);
+      ellipse(
+        this.x * TILE_SIZE + TILE_SIZE / 2 + 5,  // offset pe X cu 5 pixeli
+        this.y * TILE_SIZE + TILE_SIZE / 2 + 6,  // offset pe Y cu 6 pixeli
+        TILE_SIZE * 0.7,
+        TILE_SIZE * 0.4
+      );
+      pop();
       fill(this.color);
       ellipse(this.x * TILE_SIZE + TILE_SIZE / 2, this.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.6);
     }
@@ -503,6 +634,7 @@ function aiMakeMove() {
   if (aiPlayer.walls > 0 && Math.random() < 0.5) {
     aiPlaceWall();
   } else {
+    // Collect all valid moves, including jumps
     let possibleMoves = [
       { x: aiPlayer.x, y: aiPlayer.y - 1 },
       { x: aiPlayer.x, y: aiPlayer.y + 1 },
@@ -511,6 +643,7 @@ function aiMakeMove() {
     ];
 
     const opponent = board.players[0];
+    // Add jump moves if opponent is adjacent
     if (opponent.x === aiPlayer.x && opponent.y === aiPlayer.y - 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
       possibleMoves.push({ x: aiPlayer.x, y: aiPlayer.y - 2 });
     } else if (opponent.x === aiPlayer.x && opponent.y === aiPlayer.y + 1 && !board.isBlocked(aiPlayer.x, aiPlayer.y, opponent.x, opponent.y)) {
@@ -528,11 +661,14 @@ function aiMakeMove() {
     );
 
     if (possibleMoves.length > 0) {
+      // Pick a random valid move
       let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
       if (board.movePawn(1, move.x, move.y)) {
         currentPlayer = 0;
       }
     } else {
+      // No valid moves, try to place a wall
+      console.log("AI: No valid moves, trying to place a wall.");
       aiPlaceWall();
     }
   }
@@ -541,6 +677,7 @@ function aiMakeMove() {
 function aiPlaceWall() {
   const aiPlayer = board.players[1];
 
+  // Generate possible wall positions (try all board intersections)
   let possibleWalls = [];
   for (let x = 0; x < BOARD_SIZE - 1; x++) {
     for (let y = 0; y < BOARD_SIZE - 1; y++) {
@@ -555,11 +692,13 @@ function aiPlaceWall() {
   );
 
   if (possibleWalls.length > 0 && aiPlayer.walls > 0) {
+    // Pick a random valid wall
     let wall = possibleWalls[Math.floor(Math.random() * possibleWalls.length)];
     board.walls.push(new Wall(wall.x, wall.y, wall.vertical));
     aiPlayer.walls--;
     currentPlayer = 0;
   } else {
+    console.log("AI: No valid walls to place or no walls left.");
     currentPlayer = 0;
   }
 }
